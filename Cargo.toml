@@ -1,0 +1,23 @@
+[package]
+name = "cachebench"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+authors = ["MukundaKatta"]
+description = "Prompt-cache observability for LLM APIs. Per-call hit ratio, cost saved, regression alerts. Anthropic, OpenAI, Bedrock."
+license = "MIT"
+repository = "https://github.com/MukundaKatta/cachebench-rs"
+homepage = "https://github.com/MukundaKatta/cachebench-rs"
+documentation = "https://docs.rs/cachebench"
+readme = "README.md"
+keywords = ["llm", "anthropic", "openai", "bedrock", "observability"]
+categories = ["development-tools", "api-bindings"]
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+parking_lot = "0.12"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "rt", "rt-multi-thread", "time"] }
