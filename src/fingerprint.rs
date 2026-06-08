@@ -17,7 +17,7 @@ where
 {
     // Drop the trailing user turn; cacheable prefix is everything before it.
     let prefix = if messages.is_empty() {
-        &messages[..]
+        messages
     } else {
         &messages[..messages.len() - 1]
     };

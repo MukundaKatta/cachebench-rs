@@ -159,3 +159,56 @@ fn clones_share_history() {
     t.record("x".into(), Usage::default(), Duration::from_millis(0));
     assert_eq!(t2.calls().len(), 1);
 }
+
+#[test]
+fn reset_clears_history() {
+    let t = CacheTracker::new(Provider::Anthropic);
+    t.record("a".into(), Usage::default(), Duration::from_millis(0));
+    t.record("b".into(), Usage::default(), Duration::from_millis(0));
+    assert_eq!(t.calls().len(), 2);
+    t.reset();
+    assert_eq!(t.calls().len(), 0);
+    assert_eq!(t.aggregate().calls, 0);
+}
+
+#[test]
+fn provider_is_reported() {
+    let t = CacheTracker::new(Provider::OpenAI);
+    assert_eq!(t.provider(), Provider::OpenAI);
+}
+
+#[test]
+fn openai_pricing_uses_higher_cache_read_rate() {
+    // OpenAI cache reads cost 1.25/Mtok vs Anthropic's 0.30, so for the same
+    // usage the saved amount is smaller and the per-call cost is higher.
+    let usage = Usage {
+        input_tokens: 100,
+        cache_read_tokens: 800,
+        cache_creation_tokens: 0,
+        output_tokens: 50,
+    };
+    let m_anthropic =
+        CacheTracker::new(Provider::Anthropic).record("p".into(), usage, Duration::from_millis(0));
+    let m_openai =
+        CacheTracker::new(Provider::OpenAI).record("p".into(), usage, Duration::from_millis(0));
+
+    let saved_anthropic = m_anthropic.cost_saved_usd(&Provider::Anthropic.default_pricing());
+    let saved_openai = m_openai.cost_saved_usd(&Provider::OpenAI.default_pricing());
+    assert!(saved_openai < saved_anthropic);
+
+    // OpenAI cost = (100*2.50 + 800*1.25 + 50*10) / 1e6 = 0.00175
+    let cost_openai = m_openai.cost_usd(&Provider::OpenAI.default_pricing());
+    assert!(
+        (cost_openai - 0.00175).abs() < 1e-9,
+        "cost mismatch: {cost_openai}"
+    );
+}
+
+#[test]
+fn fingerprint_empty_messages_is_stable() {
+    let msgs: Vec<serde_json::Value> = vec![];
+    let a = fingerprint(&msgs, &"sys", &json!(null), Some("m"));
+    let b = fingerprint(&msgs, &"sys", &json!(null), Some("m"));
+    assert_eq!(a, b);
+    assert_eq!(a.len(), 16);
+}
